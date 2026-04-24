@@ -1,0 +1,15 @@
+# LangChain & Vector Store
+langchain>=0.1.46
+langchain-community>=0.1.46
+chromadb>=0.4.22
+
+# Local LLM
+ollama>=0.1.30
+
+# Evaluation Frameworks
+deepeval>=0.21.0
+ragas>=0.1.0
+
+# Utilities
+python-dotenv>=1.0.0
+pandas>=2.0.0
