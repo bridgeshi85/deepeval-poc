@@ -68,7 +68,7 @@ def query(chain, question: str) -> dict:
 if __name__ == "__main__":
     # Example usage
     # 1. Load documents
-    # docs = load_documents("your_data.txt")
+    docs = load_documents("your_data.txt")
 
     # 2. Create vector store
     # vector_store = create_vector_store(docs)
