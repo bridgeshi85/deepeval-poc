@@ -6,18 +6,20 @@
 
 ```
 ├── config.py                  # 配置管理
+├── data/mcp_basics.txt        # 本地知识库（MCP 示例）
 ├── main.py                    # 主入口
 ├── part1_baseline_rag.py      # Part 1: Baseline RAG 应用
 ├── part2_goldens_dataset.py    # Part 2: 测试数据集
 ├── part3_deepeval_metrics.py   # Part 3: DeepEval 指标
 ├── part4_ragas_evaluation.py   # Part 4: RAGAS 评估
+├── rag_app.py                 # 最小 CLI chatbot
 ├── requirements.txt
 └── .env.example
 ```
 
 ## Part 1: 环境准备与被测对象 (The Baseline)
 
-基于 LangChain 0.1.46+ 和 Chroma 构建的简易本地 RAG 应用。
+基于本地文本知识库、Ollama、LangChain 和 Chroma 构建的简易本地 RAG 应用。
 
 **Pro Tip**: 使用 `retriever.invoke(question)` 替代 `retriever.get_relevant_documents(question)`，`qa_chain.invoke()` 替代 `qa_chain.run()`。
 
@@ -49,11 +51,19 @@ pip install -r requirements.txt
 
 # 2. 配置环境变量
 cp .env.example .env
-# 编辑 .env 填入必要的 API keys
+# 编辑 .env，确认本地 Ollama 模型名与路径设置正确
 
-# 3. 运行评估
+# 3. 检查本地 RAG chatbot 配置
+python rag_app.py --check
+
+# 4. 单轮提问
+python rag_app.py "What is MCP?"
+
+# 5. 运行评估脚手架
 python main.py
 ```
+
+> 说明：该 POC 默认依赖本地 Ollama 服务，以及 `qwen2.5:latest` 和 `nomic-embed-text:latest` 两个模型。
 
 ## 评估指标一览
 

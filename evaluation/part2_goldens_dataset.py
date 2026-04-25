@@ -4,7 +4,6 @@ Defines the structure for test cases with input, expected_output, and captured c
 """
 from dataclasses import dataclass, field
 from typing import List
-from langchain.schema import Document
 
 
 @dataclass
@@ -41,16 +40,16 @@ class EvaluationDataset:
 # Sample test data for POC
 SAMPLE_TEST_DATA = [
     {
-        "input": "What is LangChain?",
-        "expected_output": "LangChain is a framework for developing applications powered by language models."
+        "input": "What is MCP?",
+        "expected_output": "MCP is an open protocol for connecting language-model applications to external tools and data sources."
     },
     {
-        "input": "What are the main components of LangChain?",
-        "expected_output": "LangChain consists of Models, Prompts, Chains, Agents, and Memory components."
+        "input": "What are the core roles in MCP?",
+        "expected_output": "The core roles in MCP are the host application, the client, and the server."
     },
     {
-        "input": "How does RAG improve LLM responses?",
-        "expected_output": "RAG (Retrieval-Augmented Generation) improves LLM responses by retrieving relevant context from a knowledge base."
+        "input": "Why would a team use MCP in an LLM app?",
+        "expected_output": "A team would use MCP to standardize how an LLM app connects to tools, data sources, and internal systems instead of building one-off integrations."
     },
 ]
 
