@@ -3,6 +3,9 @@ import os
 from langchain_ollama import OllamaEmbeddings
 from langchain_openai import ChatOpenAI
 from deepeval.models import DeepEvalBaseEmbeddingModel, DeepEvalBaseLLM
+from dotenv import load_dotenv
+
+load_dotenv()
 
 
 class QwenModel(DeepEvalBaseLLM):
@@ -55,5 +58,3 @@ class OllamaEmbeddingModel(DeepEvalBaseEmbeddingModel):
 
     def get_model_name(self):
         return "Ollama-Qwen3-Embedding"
-
-
