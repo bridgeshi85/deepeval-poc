@@ -1,0 +1,515 @@
+input,expected_output,context
+"How do the host application, MCP client, MCP server, and transport layer function together in the MCP architecture to facilitate seamless interaction between AI applications and external systems, supporting capabilities such as real-time data retrieval and tool execution?","In the MCP architecture, the host application, MCP client, MCP server, and transport layer work together to facilitate seamless interaction between AI applications and external systems. Here's how they function together:
+
+1. **Host Application**: This is the AI application (like Claude Desktop) that interacts with users. It initiates connections and uses the MCP client to communicate with external systems.
+
+2. **MCP Client**: Integrated within the host application, the MCP client handles the communication with MCP servers. It translates the host’s requirements into MCP protocol messages and vice versa. The client also manages the permission requests and responses from the user.
+
+3. **MCP Server**: These servers provide specific capabilities and context to the AI applications. They can connect to various data sources, such as local databases or remote web APIs, to retrieve real-time data or execute tools. Each server typically focuses on a specific integration point, like weather services or GitHub repositories.
+
+4. **Transport Layer**: This is the communication mechanism between the MCP client and server. MCP supports two primary methods:
+   - **STDIO (Standard Input/Output)**: Used for local integrations where the server runs in the same environment as the client.
+   - **HTTP+SSE (Server-Sent Events)**: Used for remote connections, with HTTP for client requests and SSE for server responses and streaming.
+
+The process works as follows:
+- The user asks the host application a question, such as ""What's the weather in San Francisco?""
+- The host application, through the MCP client, recognizes the need for external data and requests permission from the user.
+- Once permission is granted, the MCP client sends the request to the appropriate MCP server.
+- The MCP server processes the request, queries the external system (e.g., a weather service), and returns the results.
+- The MCP client receives the results and passes them back to the host application.
+- The host application then integrates this information and generates a response for the user.
+
+This architecture ensures that AI applications can seamlessly access and utilize real-time data and external tools, providing a more dynamic and interactive experience."," request. The user asks Claude ""What's the weather in San Francisco?"" Claude recognizes the need for external data and requests to use MCP capability. The MCP client displays a permission request, the user grants permission, and the client sends the request to the MCP server. The server queries the external system, returns formatted results, and Claude responds with the contextual answer.
+Fig: A mermaid chart created by Claude, demonstrating how Claude uses external tools with MCP.
+From user request to external data
+Let's say you ask Claude, ""What's the weather like in San Francisco today?"" Here's what happens:
+
+Need recognition: Claude analyzes your question and recognizes it needs external, real-time information that wasn't in its training data.
+
+Tool or resource selection: Claude identifies that it needs to use an MCP capability to fulfill your request.
+
+Permission request: The client displays a permission prompt asking if you want to allow access to the external tool or resource.
+
+Information exchange: Once approved, the client sends a request to the appropriate MCP server using the standardized protocol format.
+
+External processing: The MCP server processes the request, performing whatever action is needed—querying a weather service, reading a file, or accessing a database.
+
+Result return: The server returns the requested information to the client in a standardized format.
+
+Context integration: Claude receives this information and incorporates it into its understanding of the conversation.
+
+Response generation: Claude generates a response that includes the external information, providing you with an answer based on current data.
+
+Ideally, this entire process happens in seconds, creating an unobtrusive experience where Claude appears to ""know"" information it couldn't possibly have from its training data alone.
+
+Additional protocol capabilities
+Since its initial release, MCP has added several significant functions that enhance its capabilities:
+
+Sampling allows servers to request LLM completions from clients. For example, an MCP server helping with code review could recognize the need for additional context and ask the client’s LLM to generate a summary of recent changes. This enables an essentially “agentic” workflow while still retaining client control over model access, selection, and permissions—all without needing server API keys.
+
+Elicitation enables servers to request additional information from users during their operations. For instance, if the GitHub MCP server needs to know which branch to | Core components
+MCP architecture consists of four primary elements:
+
+MCP core components
+Fig: MCP core components
+Host application: Applications housing LLMs (or LLMs themselves) that interact with users and initiate connections. This includes Claude Desktop, AI-enhanced IDEs like Cursor, and standard web-based LLM chat interfaces.
+
+MCP client: Integrated within the host application to handle connections with MCP servers, translating between the host’s requirements and the Model Context Protocol. Clients are built into host applications, like the MCP client inside Claude Desktop.
+
+MCP server: Adds context and capabilities, exposing specific functions to AI apps through MCP. Each standalone server typically focuses on a specific integration point, like GitHub for repository access or a PostgreSQL for database operations.
+
+Transport layer: The communication mechanism between clients and servers. MCP supports two primary transport methods:
+
+STDIO (Standard Input/Output): Mainly local integrations where the server runs in the same environment as the client.
+
+HTTP+SSE (Server-Sent Events): Remote connections, with HTTP for client requests and SS for server responses and streaming.
+
+All communication in MCP uses JSON-RPC 2.0 as the underlying message standard, providing a standardized structure for requests, responses, and notifications.
+
+How MCP works
+When a user interacts with a host application (an AI app) that supports MCP, several processes occur behind the scenes to enable quick and seamless communication between the AI and external systems. Let’s take a closer look at what happens when a user asks Claude Desktop to perform a task that invokes tools outside the chat window.
+
+Protocol handshake
+Initial connection: When an MCP client (like Claude Desktop) starts up, it connects to the configured MCP servers on your device.
+
+Capability discovery: The client asks each server ""What capabilities do you offer?"" Each server responds with its available tools, resources, and prompts.
+
+Registration: The client registers these capabilities, making them available for the AI to use during your conversation.
+
+Sequence diagram showing how MCP handles a user request. The user asks Claude ""What's the weather in San Francisco?"" Claude recognizes the need for external data and requests to use MCP capability. The MCP client displays a permission request, the user grants permission, and the client sends the request |  simply standardizes how this API feature works, adding context for the LLM. This is achieved by streaming tool definitions (including their capabilities, data stores, and possible prompts) to LLMs from the MCP server.
+
+Without MCP, when you use a function call directly with an LLM API, you need to:
+
+Define model-specific function schemas, which are JSON descriptions of the function, acceptable parameters, and what it returns.
+
+Implement handlers (the actual code that executes when a function is called) for those functions.
+
+Create different implementations for each model you support.
+
+MCP standardizes this process by:
+
+Defining a consistent way to specify tools (functions) across any AI system.
+
+Providing a protocol for discovering available tools and executing them.
+
+Creating a universal, plug-and-play format where any AI app can use any tool without custom integration code.
+
+You might be familiar with AI apps that use function calling, like Custom GPTs using GPT Actions. A Custom GPT can determine which API call resolves the user's prompt, create the necessary JSON, then make the API call with it. While this allows some purpose-built tooling, it’s bound to OpenAI’s ecosystem. MCP brings similar capabilities to any AI application that implements the protocol, regardless of the underlying model vendor.
+
+
+Also read: MCP vs Function Calling
+
+MCP architecture and core components
+The Model Context Protocol uses a client-server architecture partially inspired by the Language Server Protocol (LSP), which helps different programming languages connect with a wide range of dev tools. Similarly, the aim of MCP is to provide a universal way for AI applications to interact with external systems by standardizing context.
+
+MCP Architecture diagram showing a host application with an MCP client (such as Claude, an IDE, or other tools) connecting via MCP Protocol to three MCP servers. Each server connects to a different data source: Server A and B connect to local data sources, while Server C connects to a remote service via web APIs over the internet.
+Fig: MCP general architecture
+Core components
+MCP architecture consists of four primary elements:
+
+MCP core components
+Fig: MCP core components
+Host application: Applications housing LLMs (or LLMs themselves) that interact with users and initiate connections. This includes Claude"
+"Analyze MCP's role in facilitating secure, real-time data exchange between AI apps and external services.","MCP (Model Context Protocol) facilitates secure, real-time data exchange between AI applications and external services by standardizing the way these interactions occur. It does this through a client-server architecture where:
+
+1. **Host Application**: The AI app (like Claude) interacts with the user and initiates connections.
+2. **MCP Client**: Integrated into the host application, it handles the connection to MCP servers, translating the host’s requirements into MCP-compliant requests.
+3. **MCP Server**: Exposes specific functions and capabilities, such as querying a weather service or accessing a database, and processes the requests from the client.
+4. **Transport Layer**: Supports communication via STDIO for local integrations and HTTP+SSE for remote connections, ensuring that all data is exchanged in a standardized JSON-RPC 2.0 format.
+
+This architecture ensures that data exchange is secure and efficient, allowing AI apps to seamlessly access and use real-time, external information while maintaining user control over permissions and data flow."," request. The user asks Claude ""What's the weather in San Francisco?"" Claude recognizes the need for external data and requests to use MCP capability. The MCP client displays a permission request, the user grants permission, and the client sends the request to the MCP server. The server queries the external system, returns formatted results, and Claude responds with the contextual answer.
+Fig: A mermaid chart created by Claude, demonstrating how Claude uses external tools with MCP.
+From user request to external data
+Let's say you ask Claude, ""What's the weather like in San Francisco today?"" Here's what happens:
+
+Need recognition: Claude analyzes your question and recognizes it needs external, real-time information that wasn't in its training data.
+
+Tool or resource selection: Claude identifies that it needs to use an MCP capability to fulfill your request.
+
+Permission request: The client displays a permission prompt asking if you want to allow access to the external tool or resource.
+
+Information exchange: Once approved, the client sends a request to the appropriate MCP server using the standardized protocol format.
+
+External processing: The MCP server processes the request, performing whatever action is needed—querying a weather service, reading a file, or accessing a database.
+
+Result return: The server returns the requested information to the client in a standardized format.
+
+Context integration: Claude receives this information and incorporates it into its understanding of the conversation.
+
+Response generation: Claude generates a response that includes the external information, providing you with an answer based on current data.
+
+Ideally, this entire process happens in seconds, creating an unobtrusive experience where Claude appears to ""know"" information it couldn't possibly have from its training data alone.
+
+Additional protocol capabilities
+Since its initial release, MCP has added several significant functions that enhance its capabilities:
+
+Sampling allows servers to request LLM completions from clients. For example, an MCP server helping with code review could recognize the need for additional context and ask the client’s LLM to generate a summary of recent changes. This enables an essentially “agentic” workflow while still retaining client control over model access, selection, and permissions—all without needing server API keys.
+
+Elicitation enables servers to request additional information from users during their operations. For instance, if the GitHub MCP server needs to know which branch to | Core components
+MCP architecture consists of four primary elements:
+
+MCP core components
+Fig: MCP core components
+Host application: Applications housing LLMs (or LLMs themselves) that interact with users and initiate connections. This includes Claude Desktop, AI-enhanced IDEs like Cursor, and standard web-based LLM chat interfaces.
+
+MCP client: Integrated within the host application to handle connections with MCP servers, translating between the host’s requirements and the Model Context Protocol. Clients are built into host applications, like the MCP client inside Claude Desktop.
+
+MCP server: Adds context and capabilities, exposing specific functions to AI apps through MCP. Each standalone server typically focuses on a specific integration point, like GitHub for repository access or a PostgreSQL for database operations.
+
+Transport layer: The communication mechanism between clients and servers. MCP supports two primary transport methods:
+
+STDIO (Standard Input/Output): Mainly local integrations where the server runs in the same environment as the client.
+
+HTTP+SSE (Server-Sent Events): Remote connections, with HTTP for client requests and SS for server responses and streaming.
+
+All communication in MCP uses JSON-RPC 2.0 as the underlying message standard, providing a standardized structure for requests, responses, and notifications.
+
+How MCP works
+When a user interacts with a host application (an AI app) that supports MCP, several processes occur behind the scenes to enable quick and seamless communication between the AI and external systems. Let’s take a closer look at what happens when a user asks Claude Desktop to perform a task that invokes tools outside the chat window.
+
+Protocol handshake
+Initial connection: When an MCP client (like Claude Desktop) starts up, it connects to the configured MCP servers on your device.
+
+Capability discovery: The client asks each server ""What capabilities do you offer?"" Each server responds with its available tools, resources, and prompts.
+
+Registration: The client registers these capabilities, making them available for the AI to use during your conversation.
+
+Sequence diagram showing how MCP handles a user request. The user asks Claude ""What's the weather in San Francisco?"" Claude recognizes the need for external data and requests to use MCP capability. The MCP client displays a permission request, the user grants permission, and the client sends the request |  simply standardizes how this API feature works, adding context for the LLM. This is achieved by streaming tool definitions (including their capabilities, data stores, and possible prompts) to LLMs from the MCP server.
+
+Without MCP, when you use a function call directly with an LLM API, you need to:
+
+Define model-specific function schemas, which are JSON descriptions of the function, acceptable parameters, and what it returns.
+
+Implement handlers (the actual code that executes when a function is called) for those functions.
+
+Create different implementations for each model you support.
+
+MCP standardizes this process by:
+
+Defining a consistent way to specify tools (functions) across any AI system.
+
+Providing a protocol for discovering available tools and executing them.
+
+Creating a universal, plug-and-play format where any AI app can use any tool without custom integration code.
+
+You might be familiar with AI apps that use function calling, like Custom GPTs using GPT Actions. A Custom GPT can determine which API call resolves the user's prompt, create the necessary JSON, then make the API call with it. While this allows some purpose-built tooling, it’s bound to OpenAI’s ecosystem. MCP brings similar capabilities to any AI application that implements the protocol, regardless of the underlying model vendor.
+
+
+Also read: MCP vs Function Calling
+
+MCP architecture and core components
+The Model Context Protocol uses a client-server architecture partially inspired by the Language Server Protocol (LSP), which helps different programming languages connect with a wide range of dev tools. Similarly, the aim of MCP is to provide a universal way for AI applications to interact with external systems by standardizing context.
+
+MCP Architecture diagram showing a host application with an MCP client (such as Claude, an IDE, or other tools) connecting via MCP Protocol to three MCP servers. Each server connects to a different data source: Server A and B connect to local data sources, while Server C connects to a remote service via web APIs over the internet.
+Fig: MCP general architecture
+Core components
+MCP architecture consists of four primary elements:
+
+MCP core components
+Fig: MCP core components
+Host application: Applications housing LLMs (or LLMs themselves) that interact with users and initiate connections. This includes Claude"
+"How does the Model Context Protocol (MCP) simplify LLM integration with external data sources and tools, and what are its core architectural components?","The Model Context Protocol (MCP) simplifies LLM integration with external data sources and tools by providing a standardized, universal way to connect AI models with various systems. Instead of requiring custom integration for each combination of LLM and tool, MCP allows any AI app to use any tool without the need for specific, custom integration code. This reduces redundant development efforts, excessive maintenance, and fragmented implementation.
+
+**Core Architectural Components of MCP:**
+
+1. **Host Application**: This is the application or LLM that interacts with users and initiates connections. It includes the LLMs themselves, such as Claude, or other tools like IDEs.
+2. **MCP Client**: The client within the host application that communicates with the MCP server. It handles the function calls and interactions with the external tools.
+3. **MCP Server**: The server that manages the connection between the MCP client and the external data sources or tools. It provides a consistent way to specify and discover available tools.
+4. **Data Sources/Tools**: These are the external systems, such as local data stores or remote services, that the MCP server connects to via their unique APIs.
+
+By standardizing the process, MCP makes it easier to build more capable, context-aware applications, reducing the complexity and effort required for integration.","Large language models (LLMs) like Claude, ChatGPT, Gemini, and Llama have completely changed how we interact with information and technology. They can write eloquently, perform deep research, and solve increasingly complex problems. But while typical models excel at responding to natural language, they’ve been constrained by their isolation from real-world data and systems.
+
+The Model Context Protocol (MCP) addresses this challenge by providing a standardized way for LLMs to connect with external data sources and tools—essentially a “universal remote” for AI. Released by Anthropic as an open-source protocol, MCP builds on existing function calling by eliminating the need for custom integration between LLMs and other apps. This means developers can build more capable, context-aware applications without reinventing the wheel for each combination of AI model and external system.
+
+Comparison diagram showing LLM integration before and after MCP. On the left, an LLM connects directly to Google Drive, Slack, and GitHub through separate unique APIs. On the right, the LLM connects through a single unified API to the Model Context Protocol, which then connects to each service through their unique APIs, thereby reducing integration complexity.
+Fig: Diagram illustrating integration complexity before and after MCP
+This guide explains the Model Context Protocol’s architecture and capabilities, how it solves the inherent challenges of AI integration, and how you can begin using it to build better AI apps that go beyond isolated chat interfaces.
+
+LLM isolation & the NxM problem
+It’s no secret that LLMs are remarkably capable, but they typically operate in isolation from real-world systems and current data. This creates two distinct but related challenges: one for end users, and one for developers and businesses.
+
+For everyday users, the isolation means a constant “copy and paste tango” to get relevant responses about recent data. This requires manually collecting information from various sources, feeding it into the LLM’s chat interface, and then extracting or applying the AI’s output elsewhere.
+
+While several models offer AI-powered web search, and Anthropic’s Claude 3.7 and 4 models boast a Computer Use feature, they still lack direct integration with knowledge stores and tools. Even as major platforms like OpenAI’s ChatGPT and Google’s Gemini add built-in app integrations, these remain platform-specific |  models boast a Computer Use feature, they still lack direct integration with knowledge stores and tools. Even as major platforms like OpenAI’s ChatGPT and Google’s Gemini add built-in app integrations, these remain platform-specific solutions rather than universal standards.
+
+For devs and enterprises, the challenge is much more complex: the “NxM problem,” where N represents LLMs and M stands for tools. On the N side, there are many AI systems, and on the M side, there are countless systems. Each LLM provider has their own protocols to connect with external tools, making the potential integration points essentially endless.
+
+By breaking the NxM problem down, we can see it causes:
+
+Redundant development efforts: Dev teams will repeatedly solve the same integration issues for each new AI model or data source. For example, connecting ChatGPT with your knowledge stores requires starting from scratch with custom code. But with every additional AI system or tool, your devs have to do everything from the beginning each time—N multiplied by M.
+
+Excessive maintenance: Tools, models, and APIs will inevitably evolve, and business will want to stay on the cutting edge. The lack of standardization means an integration can potentially stop working because a tool or model is updated, or an old one is deprecated.
+
+Fragmented implementation: Different integrations may handle similar functions in totally unexpected ways, creating unpredictable or undesirable results. This fragmentation can lead to end user confusion or frustration as different developers and companies implement inconsistent integrations.
+
+However, it’s important to understand that MCP doesn’t solve the NxM problem by simply replacing the integration methods that came before. It connects AI apps to context while building on top of function calling—the primary method for calling APIs from LLMs—to make development simpler and more consistent.
+
+Relationship between function calling & Model Context Protocol
+Function calling, which allows LLMs to invoke predetermined functions based on user requests, is a well-established feature of modern AI models. Sometimes referred to as “tool use,” function calling is not mutually exclusive with MCP; the new protocol simply standardizes how this API feature works, adding context for the LLM. This is achieved by streaming tool definitions (including their capabilities, data stores, and possible prompts) to LLMs from the MCP server.
+
+Without MCP, |  simply standardizes how this API feature works, adding context for the LLM. This is achieved by streaming tool definitions (including their capabilities, data stores, and possible prompts) to LLMs from the MCP server.
+
+Without MCP, when you use a function call directly with an LLM API, you need to:
+
+Define model-specific function schemas, which are JSON descriptions of the function, acceptable parameters, and what it returns.
+
+Implement handlers (the actual code that executes when a function is called) for those functions.
+
+Create different implementations for each model you support.
+
+MCP standardizes this process by:
+
+Defining a consistent way to specify tools (functions) across any AI system.
+
+Providing a protocol for discovering available tools and executing them.
+
+Creating a universal, plug-and-play format where any AI app can use any tool without custom integration code.
+
+You might be familiar with AI apps that use function calling, like Custom GPTs using GPT Actions. A Custom GPT can determine which API call resolves the user's prompt, create the necessary JSON, then make the API call with it. While this allows some purpose-built tooling, it’s bound to OpenAI’s ecosystem. MCP brings similar capabilities to any AI application that implements the protocol, regardless of the underlying model vendor.
+
+
+Also read: MCP vs Function Calling
+
+MCP architecture and core components
+The Model Context Protocol uses a client-server architecture partially inspired by the Language Server Protocol (LSP), which helps different programming languages connect with a wide range of dev tools. Similarly, the aim of MCP is to provide a universal way for AI applications to interact with external systems by standardizing context.
+
+MCP Architecture diagram showing a host application with an MCP client (such as Claude, an IDE, or other tools) connecting via MCP Protocol to three MCP servers. Each server connects to a different data source: Server A and B connect to local data sources, while Server C connects to a remote service via web APIs over the internet.
+Fig: MCP general architecture
+Core components
+MCP architecture consists of four primary elements:
+
+MCP core components
+Fig: MCP core components
+Host application: Applications housing LLMs (or LLMs themselves) that interact with users and initiate connections. This includes Claude"
+Compare the benefits of MCP for integrating LLMs with tools and data sources to traditional function calling methods.,"The Model Context Protocol (MCP) offers several key benefits over traditional function calling methods when integrating Large Language Models (LLMs) with tools and data sources:
+
+1. **Standardization and Consistency**:
+   - **MCP**: Provides a standardized way to specify and discover tools, making it easier to integrate LLMs with any external system without custom integration code.
+   - **Function Calling**: Requires defining model-specific function schemas and implementing handlers for each function, leading to redundant development efforts.
+
+2. **Reduced Integration Complexity**:
+   - **MCP**: Simplifies the integration process by providing a single, unified API that connects to multiple services, reducing the need for separate unique APIs for each service.
+   - **Function Calling**: Involves direct, custom integration with each tool or data source, which can be complex and time-consuming.
+
+3. **Simplified Maintenance**:
+   - **MCP**: Standardizes the protocol, making it easier to maintain and update integrations as tools and models evolve.
+   - **Function Calling**: Can lead to excessive maintenance due to the lack of standardization, requiring updates for each individual integration whenever a tool or model changes.
+
+4. **Enhanced Context and Capabilities**:
+   - **MCP**: Streams tool definitions, including capabilities, data stores, and possible prompts, to LLMs, providing richer context and more consistent behavior.
+   - **Function Calling**: Typically involves static, predefined functions, which may not provide the same level of dynamic context and flexibility.
+
+5. **Universal Compatibility**:
+   - **MCP**: Enables any AI application to use any tool, regardless of the underlying model vendor, promoting a more interoperable ecosystem.
+   - **Function Calling**: Often tied to specific platforms or ecosystems, limiting the ability to seamlessly switch between different LLMs and tools.
+
+In summary, MCP streamlines the integration process, reduces redundancy, and enhances the overall functionality and maintainability of LLM integrations compared to traditional function calling methods.","Large language models (LLMs) like Claude, ChatGPT, Gemini, and Llama have completely changed how we interact with information and technology. They can write eloquently, perform deep research, and solve increasingly complex problems. But while typical models excel at responding to natural language, they’ve been constrained by their isolation from real-world data and systems.
+
+The Model Context Protocol (MCP) addresses this challenge by providing a standardized way for LLMs to connect with external data sources and tools—essentially a “universal remote” for AI. Released by Anthropic as an open-source protocol, MCP builds on existing function calling by eliminating the need for custom integration between LLMs and other apps. This means developers can build more capable, context-aware applications without reinventing the wheel for each combination of AI model and external system.
+
+Comparison diagram showing LLM integration before and after MCP. On the left, an LLM connects directly to Google Drive, Slack, and GitHub through separate unique APIs. On the right, the LLM connects through a single unified API to the Model Context Protocol, which then connects to each service through their unique APIs, thereby reducing integration complexity.
+Fig: Diagram illustrating integration complexity before and after MCP
+This guide explains the Model Context Protocol’s architecture and capabilities, how it solves the inherent challenges of AI integration, and how you can begin using it to build better AI apps that go beyond isolated chat interfaces.
+
+LLM isolation & the NxM problem
+It’s no secret that LLMs are remarkably capable, but they typically operate in isolation from real-world systems and current data. This creates two distinct but related challenges: one for end users, and one for developers and businesses.
+
+For everyday users, the isolation means a constant “copy and paste tango” to get relevant responses about recent data. This requires manually collecting information from various sources, feeding it into the LLM’s chat interface, and then extracting or applying the AI’s output elsewhere.
+
+While several models offer AI-powered web search, and Anthropic’s Claude 3.7 and 4 models boast a Computer Use feature, they still lack direct integration with knowledge stores and tools. Even as major platforms like OpenAI’s ChatGPT and Google’s Gemini add built-in app integrations, these remain platform-specific |  models boast a Computer Use feature, they still lack direct integration with knowledge stores and tools. Even as major platforms like OpenAI’s ChatGPT and Google’s Gemini add built-in app integrations, these remain platform-specific solutions rather than universal standards.
+
+For devs and enterprises, the challenge is much more complex: the “NxM problem,” where N represents LLMs and M stands for tools. On the N side, there are many AI systems, and on the M side, there are countless systems. Each LLM provider has their own protocols to connect with external tools, making the potential integration points essentially endless.
+
+By breaking the NxM problem down, we can see it causes:
+
+Redundant development efforts: Dev teams will repeatedly solve the same integration issues for each new AI model or data source. For example, connecting ChatGPT with your knowledge stores requires starting from scratch with custom code. But with every additional AI system or tool, your devs have to do everything from the beginning each time—N multiplied by M.
+
+Excessive maintenance: Tools, models, and APIs will inevitably evolve, and business will want to stay on the cutting edge. The lack of standardization means an integration can potentially stop working because a tool or model is updated, or an old one is deprecated.
+
+Fragmented implementation: Different integrations may handle similar functions in totally unexpected ways, creating unpredictable or undesirable results. This fragmentation can lead to end user confusion or frustration as different developers and companies implement inconsistent integrations.
+
+However, it’s important to understand that MCP doesn’t solve the NxM problem by simply replacing the integration methods that came before. It connects AI apps to context while building on top of function calling—the primary method for calling APIs from LLMs—to make development simpler and more consistent.
+
+Relationship between function calling & Model Context Protocol
+Function calling, which allows LLMs to invoke predetermined functions based on user requests, is a well-established feature of modern AI models. Sometimes referred to as “tool use,” function calling is not mutually exclusive with MCP; the new protocol simply standardizes how this API feature works, adding context for the LLM. This is achieved by streaming tool definitions (including their capabilities, data stores, and possible prompts) to LLMs from the MCP server.
+
+Without MCP, |  simply standardizes how this API feature works, adding context for the LLM. This is achieved by streaming tool definitions (including their capabilities, data stores, and possible prompts) to LLMs from the MCP server.
+
+Without MCP, when you use a function call directly with an LLM API, you need to:
+
+Define model-specific function schemas, which are JSON descriptions of the function, acceptable parameters, and what it returns.
+
+Implement handlers (the actual code that executes when a function is called) for those functions.
+
+Create different implementations for each model you support.
+
+MCP standardizes this process by:
+
+Defining a consistent way to specify tools (functions) across any AI system.
+
+Providing a protocol for discovering available tools and executing them.
+
+Creating a universal, plug-and-play format where any AI app can use any tool without custom integration code.
+
+You might be familiar with AI apps that use function calling, like Custom GPTs using GPT Actions. A Custom GPT can determine which API call resolves the user's prompt, create the necessary JSON, then make the API call with it. While this allows some purpose-built tooling, it’s bound to OpenAI’s ecosystem. MCP brings similar capabilities to any AI application that implements the protocol, regardless of the underlying model vendor.
+
+
+Also read: MCP vs Function Calling
+
+MCP architecture and core components
+The Model Context Protocol uses a client-server architecture partially inspired by the Language Server Protocol (LSP), which helps different programming languages connect with a wide range of dev tools. Similarly, the aim of MCP is to provide a universal way for AI applications to interact with external systems by standardizing context.
+
+MCP Architecture diagram showing a host application with an MCP client (such as Claude, an IDE, or other tools) connecting via MCP Protocol to three MCP servers. Each server connects to a different data source: Server A and B connect to local data sources, while Server C connects to a remote service via web APIs over the internet.
+Fig: MCP general architecture
+Core components
+MCP architecture consists of four primary elements:
+
+MCP core components
+Fig: MCP core components
+Host application: Applications housing LLMs (or LLMs themselves) that interact with users and initiate connections. This includes Claude"
+"How do redundant development efforts, excessive maintenance, and fragmented implementation, as part of the NxM problem (N for LLMs, M for tools), complicate integration and standardization for developers and enterprises, leading to inefficiencies and inconsistencies in AI system connectivity?","The NxM problem, where N represents the number of LLMs and M represents the number of tools, complicates integration and standardization for developers and enterprises in several ways:
+
+1. **Redundant Development Efforts**: Each time a new AI model or data source is introduced, developers must start from scratch to integrate it with existing tools. For example, integrating ChatGPT with a knowledge store requires custom code, and this process must be repeated for every new AI system or tool, leading to N multiplied by M redundant efforts.
+
+2. **Excessive Maintenance**: As tools, models, and APIs evolve, integrations can break due to updates or deprecations. The lack of standardization means that maintenance becomes a continuous and resource-intensive task, as each change in a tool or model may require significant rework.
+
+3. **Fragmented Implementation**: Different integrations may handle similar functions in inconsistent ways, leading to unpredictable or undesirable results. This fragmentation can confuse end users and create a disjointed experience, as different developers and companies implement these integrations in their own unique ways.
+
+These issues lead to inefficiencies and inconsistencies in AI system connectivity, making it challenging for developers and enterprises to build and maintain robust, integrated AI solutions."," models boast a Computer Use feature, they still lack direct integration with knowledge stores and tools. Even as major platforms like OpenAI’s ChatGPT and Google’s Gemini add built-in app integrations, these remain platform-specific solutions rather than universal standards.
+
+For devs and enterprises, the challenge is much more complex: the “NxM problem,” where N represents LLMs and M stands for tools. On the N side, there are many AI systems, and on the M side, there are countless systems. Each LLM provider has their own protocols to connect with external tools, making the potential integration points essentially endless.
+
+By breaking the NxM problem down, we can see it causes:
+
+Redundant development efforts: Dev teams will repeatedly solve the same integration issues for each new AI model or data source. For example, connecting ChatGPT with your knowledge stores requires starting from scratch with custom code. But with every additional AI system or tool, your devs have to do everything from the beginning each time—N multiplied by M.
+
+Excessive maintenance: Tools, models, and APIs will inevitably evolve, and business will want to stay on the cutting edge. The lack of standardization means an integration can potentially stop working because a tool or model is updated, or an old one is deprecated.
+
+Fragmented implementation: Different integrations may handle similar functions in totally unexpected ways, creating unpredictable or undesirable results. This fragmentation can lead to end user confusion or frustration as different developers and companies implement inconsistent integrations.
+
+However, it’s important to understand that MCP doesn’t solve the NxM problem by simply replacing the integration methods that came before. It connects AI apps to context while building on top of function calling—the primary method for calling APIs from LLMs—to make development simpler and more consistent.
+
+Relationship between function calling & Model Context Protocol
+Function calling, which allows LLMs to invoke predetermined functions based on user requests, is a well-established feature of modern AI models. Sometimes referred to as “tool use,” function calling is not mutually exclusive with MCP; the new protocol simply standardizes how this API feature works, adding context for the LLM. This is achieved by streaming tool definitions (including their capabilities, data stores, and possible prompts) to LLMs from the MCP server.
+
+Without MCP, | Large language models (LLMs) like Claude, ChatGPT, Gemini, and Llama have completely changed how we interact with information and technology. They can write eloquently, perform deep research, and solve increasingly complex problems. But while typical models excel at responding to natural language, they’ve been constrained by their isolation from real-world data and systems.
+
+The Model Context Protocol (MCP) addresses this challenge by providing a standardized way for LLMs to connect with external data sources and tools—essentially a “universal remote” for AI. Released by Anthropic as an open-source protocol, MCP builds on existing function calling by eliminating the need for custom integration between LLMs and other apps. This means developers can build more capable, context-aware applications without reinventing the wheel for each combination of AI model and external system.
+
+Comparison diagram showing LLM integration before and after MCP. On the left, an LLM connects directly to Google Drive, Slack, and GitHub through separate unique APIs. On the right, the LLM connects through a single unified API to the Model Context Protocol, which then connects to each service through their unique APIs, thereby reducing integration complexity.
+Fig: Diagram illustrating integration complexity before and after MCP
+This guide explains the Model Context Protocol’s architecture and capabilities, how it solves the inherent challenges of AI integration, and how you can begin using it to build better AI apps that go beyond isolated chat interfaces.
+
+LLM isolation & the NxM problem
+It’s no secret that LLMs are remarkably capable, but they typically operate in isolation from real-world systems and current data. This creates two distinct but related challenges: one for end users, and one for developers and businesses.
+
+For everyday users, the isolation means a constant “copy and paste tango” to get relevant responses about recent data. This requires manually collecting information from various sources, feeding it into the LLM’s chat interface, and then extracting or applying the AI’s output elsewhere.
+
+While several models offer AI-powered web search, and Anthropic’s Claude 3.7 and 4 models boast a Computer Use feature, they still lack direct integration with knowledge stores and tools. Even as major platforms like OpenAI’s ChatGPT and Google’s Gemini add built-in app integrations, these remain platform-specific |  simply standardizes how this API feature works, adding context for the LLM. This is achieved by streaming tool definitions (including their capabilities, data stores, and possible prompts) to LLMs from the MCP server.
+
+Without MCP, when you use a function call directly with an LLM API, you need to:
+
+Define model-specific function schemas, which are JSON descriptions of the function, acceptable parameters, and what it returns.
+
+Implement handlers (the actual code that executes when a function is called) for those functions.
+
+Create different implementations for each model you support.
+
+MCP standardizes this process by:
+
+Defining a consistent way to specify tools (functions) across any AI system.
+
+Providing a protocol for discovering available tools and executing them.
+
+Creating a universal, plug-and-play format where any AI app can use any tool without custom integration code.
+
+You might be familiar with AI apps that use function calling, like Custom GPTs using GPT Actions. A Custom GPT can determine which API call resolves the user's prompt, create the necessary JSON, then make the API call with it. While this allows some purpose-built tooling, it’s bound to OpenAI’s ecosystem. MCP brings similar capabilities to any AI application that implements the protocol, regardless of the underlying model vendor.
+
+
+Also read: MCP vs Function Calling
+
+MCP architecture and core components
+The Model Context Protocol uses a client-server architecture partially inspired by the Language Server Protocol (LSP), which helps different programming languages connect with a wide range of dev tools. Similarly, the aim of MCP is to provide a universal way for AI applications to interact with external systems by standardizing context.
+
+MCP Architecture diagram showing a host application with an MCP client (such as Claude, an IDE, or other tools) connecting via MCP Protocol to three MCP servers. Each server connects to a different data source: Server A and B connect to local data sources, while Server C connects to a remote service via web APIs over the internet.
+Fig: MCP general architecture
+Core components
+MCP architecture consists of four primary elements:
+
+MCP core components
+Fig: MCP core components
+Host application: Applications housing LLMs (or LLMs themselves) that interact with users and initiate connections. This includes Claude"
+"How does the Model Context Protocol (MCP) standardize the integration of large language models (LLMs) with external data sources and tools, addressing the NxM problem by providing a universal, plug-and-play format and reducing redundant development and maintenance efforts?","The Model Context Protocol (MCP) standardizes the integration of large language models (LLMs) with external data sources and tools by providing a universal, plug-and-play format. This addresses the NxM problem—where N represents LLMs and M stands for tools—by reducing redundant development and maintenance efforts in several ways:
+
+1. **Consistent Tool Specification**: MCP defines a consistent way to specify tools (functions) across any AI system, eliminating the need for model-specific function schemas.
+
+2. **Tool Discovery and Execution**: It provides a protocol for discovering available tools and executing them, streamlining the process of integrating new tools or updating existing ones.
+
+3. **Universal Integration**: MCP creates a universal format where any AI app can use any tool without custom integration code, making it easier to connect LLMs with various external systems and data sources.
+
+4. **Reduced Redundancy and Maintenance**: By standardizing the integration process, MCP reduces the need for developers to repeatedly solve the same integration issues for each new AI model or data source. This also minimizes the risk of integrations breaking due to updates or deprecations.
+
+Overall, MCP simplifies the development and maintenance of AI applications, making them more context-aware and capable without the need for extensive custom coding."," models boast a Computer Use feature, they still lack direct integration with knowledge stores and tools. Even as major platforms like OpenAI’s ChatGPT and Google’s Gemini add built-in app integrations, these remain platform-specific solutions rather than universal standards.
+
+For devs and enterprises, the challenge is much more complex: the “NxM problem,” where N represents LLMs and M stands for tools. On the N side, there are many AI systems, and on the M side, there are countless systems. Each LLM provider has their own protocols to connect with external tools, making the potential integration points essentially endless.
+
+By breaking the NxM problem down, we can see it causes:
+
+Redundant development efforts: Dev teams will repeatedly solve the same integration issues for each new AI model or data source. For example, connecting ChatGPT with your knowledge stores requires starting from scratch with custom code. But with every additional AI system or tool, your devs have to do everything from the beginning each time—N multiplied by M.
+
+Excessive maintenance: Tools, models, and APIs will inevitably evolve, and business will want to stay on the cutting edge. The lack of standardization means an integration can potentially stop working because a tool or model is updated, or an old one is deprecated.
+
+Fragmented implementation: Different integrations may handle similar functions in totally unexpected ways, creating unpredictable or undesirable results. This fragmentation can lead to end user confusion or frustration as different developers and companies implement inconsistent integrations.
+
+However, it’s important to understand that MCP doesn’t solve the NxM problem by simply replacing the integration methods that came before. It connects AI apps to context while building on top of function calling—the primary method for calling APIs from LLMs—to make development simpler and more consistent.
+
+Relationship between function calling & Model Context Protocol
+Function calling, which allows LLMs to invoke predetermined functions based on user requests, is a well-established feature of modern AI models. Sometimes referred to as “tool use,” function calling is not mutually exclusive with MCP; the new protocol simply standardizes how this API feature works, adding context for the LLM. This is achieved by streaming tool definitions (including their capabilities, data stores, and possible prompts) to LLMs from the MCP server.
+
+Without MCP, | Large language models (LLMs) like Claude, ChatGPT, Gemini, and Llama have completely changed how we interact with information and technology. They can write eloquently, perform deep research, and solve increasingly complex problems. But while typical models excel at responding to natural language, they’ve been constrained by their isolation from real-world data and systems.
+
+The Model Context Protocol (MCP) addresses this challenge by providing a standardized way for LLMs to connect with external data sources and tools—essentially a “universal remote” for AI. Released by Anthropic as an open-source protocol, MCP builds on existing function calling by eliminating the need for custom integration between LLMs and other apps. This means developers can build more capable, context-aware applications without reinventing the wheel for each combination of AI model and external system.
+
+Comparison diagram showing LLM integration before and after MCP. On the left, an LLM connects directly to Google Drive, Slack, and GitHub through separate unique APIs. On the right, the LLM connects through a single unified API to the Model Context Protocol, which then connects to each service through their unique APIs, thereby reducing integration complexity.
+Fig: Diagram illustrating integration complexity before and after MCP
+This guide explains the Model Context Protocol’s architecture and capabilities, how it solves the inherent challenges of AI integration, and how you can begin using it to build better AI apps that go beyond isolated chat interfaces.
+
+LLM isolation & the NxM problem
+It’s no secret that LLMs are remarkably capable, but they typically operate in isolation from real-world systems and current data. This creates two distinct but related challenges: one for end users, and one for developers and businesses.
+
+For everyday users, the isolation means a constant “copy and paste tango” to get relevant responses about recent data. This requires manually collecting information from various sources, feeding it into the LLM’s chat interface, and then extracting or applying the AI’s output elsewhere.
+
+While several models offer AI-powered web search, and Anthropic’s Claude 3.7 and 4 models boast a Computer Use feature, they still lack direct integration with knowledge stores and tools. Even as major platforms like OpenAI’s ChatGPT and Google’s Gemini add built-in app integrations, these remain platform-specific |  simply standardizes how this API feature works, adding context for the LLM. This is achieved by streaming tool definitions (including their capabilities, data stores, and possible prompts) to LLMs from the MCP server.
+
+Without MCP, when you use a function call directly with an LLM API, you need to:
+
+Define model-specific function schemas, which are JSON descriptions of the function, acceptable parameters, and what it returns.
+
+Implement handlers (the actual code that executes when a function is called) for those functions.
+
+Create different implementations for each model you support.
+
+MCP standardizes this process by:
+
+Defining a consistent way to specify tools (functions) across any AI system.
+
+Providing a protocol for discovering available tools and executing them.
+
+Creating a universal, plug-and-play format where any AI app can use any tool without custom integration code.
+
+You might be familiar with AI apps that use function calling, like Custom GPTs using GPT Actions. A Custom GPT can determine which API call resolves the user's prompt, create the necessary JSON, then make the API call with it. While this allows some purpose-built tooling, it’s bound to OpenAI’s ecosystem. MCP brings similar capabilities to any AI application that implements the protocol, regardless of the underlying model vendor.
+
+
+Also read: MCP vs Function Calling
+
+MCP architecture and core components
+The Model Context Protocol uses a client-server architecture partially inspired by the Language Server Protocol (LSP), which helps different programming languages connect with a wide range of dev tools. Similarly, the aim of MCP is to provide a universal way for AI applications to interact with external systems by standardizing context.
+
+MCP Architecture diagram showing a host application with an MCP client (such as Claude, an IDE, or other tools) connecting via MCP Protocol to three MCP servers. Each server connects to a different data source: Server A and B connect to local data sources, while Server C connects to a remote service via web APIs over the internet.
+Fig: MCP general architecture
+Core components
+MCP architecture consists of four primary elements:
+
+MCP core components
+Fig: MCP core components
+Host application: Applications housing LLMs (or LLMs themselves) that interact with users and initiate connections. This includes Claude"
