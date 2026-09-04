@@ -11,7 +11,8 @@ TARGET_URL = "https://www.descope.com/learn/post/mcp"
 CHUNK_SIZE = 500
 CHUNK_OVERLAP = 50
 EMBEDDING_MODEL = "qwen3-embedding:4b"
-PERSIST_DIRECTORY = "../chroma_db"
+# 相对本文件定位，从任意 cwd 运行结果一致（与 rag_app.py 保持一致）
+PERSIST_DIRECTORY = os.path.join(os.path.dirname(os.path.abspath(__file__)), "../chroma_db")
 
 
 # ==========================================

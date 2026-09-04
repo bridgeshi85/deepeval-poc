@@ -86,7 +86,7 @@
 
 ### 🎯 选题 5：RAGAS vs DeepEval，在同一个 RAG Bot 上打分差多少
 
-**💡 素材关联**：本仓库 `deepeval-local-llm-poc`（已有 5 个 DeepEval 指标的真实分数）
+**💡 素材关联**：`deepeval-local-llm-poc/` 子项目（已有 5 个 DeepEval 指标的真实分数）
 
 **文章价值**：不属于 Agent 系列，但成本最低、最容易出活——直接用已经跑出来的 golden dataset 再跑一遍 RAGAS，做真实数据对比，而非转述别人的框架对比文章。
 
@@ -97,7 +97,7 @@
 1. 同一批 golden dataset，两个框架的 Faithfulness/Relevancy 分数差多少？
 2. 分数差异是 judge 模型不同导致，还是指标定义细节不同？
 
-**参考资料**：本仓库 `deepeval-local-llm-poc`
+**参考资料**：`deepeval-local-llm-poc/` 子项目
 
 ---
 
