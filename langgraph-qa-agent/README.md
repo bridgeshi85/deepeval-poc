@@ -12,3 +12,22 @@
 的「附录：选题 4 的最终方案」。
 
 状态：目录占位，尚未开始编码。
+
+## Agent API 兼容性
+
+本项目使用 LangChain 1.x。现有研究员使用的 `create_tool_calling_agent` 和
+`AgentExecutor` 已迁移到 `langchain_classic.agents`，因此依赖中显式包含
+`langchain-classic`。无需降级 `langchain`。
+
+在项目目录安装依赖后，可运行研究员和反思链的本地示例（需要配置模型环境变量，
+且会调用外部模型和检索服务）：
+
+```powershell
+python -m pip install -r .\requirements.txt
+python .\qa_agent\agents.py
+```
+
+## 写作参考：LangChain v1 的 Agent API 迁移
+
+官方来源、迁移对照及文章切入点已单独整理到
+[Agent API 迁移备忘](../docs/langchain-agent-migration-memo.md)。
