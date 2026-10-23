@@ -1,5 +1,5 @@
 from typing import Optional
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field
 from langchain_core.prompts import ChatPromptTemplate
 # from langchain_classic.agents import create_tool_calling_agent, AgentExecutor
 from langchain.agents import create_agent
@@ -20,16 +20,6 @@ class ReflectionResponse(BaseModel):
         default=None, 
         description="对当前研究结论的批评、指引或需要进一步搜索的具体方向。如果答案已完美，请留空。"
     )
-
-    @model_validator(mode='after')
-    def validate_logic(self):
-        """处理模型可能的违规输出：同时有 answer 和 critique，或者都为空"""
-        if not self.answer and not self.critique:
-            self.critique = "论证过程模糊，无法提取有效答案，请继续进行更深度的搜索和分析。"
-        elif self.answer and self.critique:
-            # 如果教授给出了 critique，说明论证还没完美，强制清空 answer 迫使回炉重造
-            self.answer = None
-        return self
 
 # ==========================================
 # 2. 核心组件构建函数
@@ -56,11 +46,36 @@ def create_critique_researcher():
     )
 
 
+RESEARCH_USER_TEMPLATE = "题目：\n{question}\n\n选项：\n{options}"
+
 CRITIQUE_USER_TEMPLATE = (
     "题目：\n{question}\n\n选项：\n{options}\n\n"
     "你之前的回答：\n{previous_answer}\n\n"
     "教授的反馈 (Critique)：\n{feedback}"
 )
+
+def _ask(agent, content: str) -> str:
+    """create_agent 的输入是 messages，输出是完整消息列表，这里只取最后一条 AI 消息的文本。"""
+    result = agent.invoke({"messages": [{"role": "user", "content": content}]})
+    return result["messages"][-1].text
+
+def run_research(agent, question: str, options: str) -> str:
+    """调用初始 Research Agent，返回研究员的论证文本。"""
+    return _ask(agent, RESEARCH_USER_TEMPLATE.format(question=question, options=options))
+
+def run_critique_research(
+    agent, question: str, options: str, previous_answer: str, feedback: str
+) -> str:
+    """调用 Research-with-critique Agent，返回修正后的论证文本。"""
+    return _ask(
+        agent,
+        CRITIQUE_USER_TEMPLATE.format(
+            question=question,
+            options=options,
+            previous_answer=previous_answer,
+            feedback=feedback,
+        ),
+    )
 
 def create_reflection_chain():
     """Reflection Chain：教授角色审查，返回结构化数据"""
@@ -83,24 +98,9 @@ if __name__ == "__main__":
     
     print("\n--- [测试 1] 初始 Research Agent ---")
     researcher = create_research_agent()
-    research_result = researcher.invoke({
-        "messages": [{
-            "role": "user",
-            "content": f"题目：\n{question}\n\n选项：\n{options}",
-        }]
-    })
-    
-    # Use with context
-    # initial_researcher.invoke(
-    #     {"messages": [{"role": "user", "content": question}]},
-    #     context=Context(user_role="expert")
-    # )
-    
-    draft_answer = research_result
+    draft_answer = run_research(researcher, question, options)
     print(f"\n[研究员初步结论]:\n{draft_answer}")
-    
-    
-    
+
     print("\n--- [测试 2] Reflection Chain ---")
     reflection_chain = create_reflection_chain()
     reflection = reflection_chain.invoke({
@@ -112,3 +112,11 @@ if __name__ == "__main__":
     print(f"\n[教授审批结果 (结构化)]:")
     print(f"最终答案 (Answer): {reflection.answer}")
     print(f"修改意见 (Critique): {reflection.critique}")
+
+    print("\n--- [测试 3] Research-with-critique Agent ---")
+    # 教授已确认答案时没有 critique，这里用固定反馈单独验证该组件
+    feedback = reflection.critique or "请核对权威来源，并逐项说明每个选项正确或错误的理由。"
+    revised_answer = run_critique_research(
+        create_critique_researcher(), question, options, draft_answer, feedback
+    )
+    print(f"\n[研究员修正后的结论]:\n{revised_answer}")

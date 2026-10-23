@@ -73,21 +73,21 @@ python -m pip install -r requirements.txt
 
 **文章素材：**解释 LangGraph 的 state 是节点之间共享和更新的数据。
 
-## 5. 配置条件路由并编译图
+## 5. 配置路由并编译图
 
 **文件：** `qa_agent/graph.py`
 
-实现 `_should_end`，并按以下流程组装 `StateGraph`：
+在 `reflect` 节点中判断结束还是继续，并用 `Command(goto=...)` 路由，再按以下流程组装 `StateGraph`：
 
 ```text
 START -> research_start -> reflect
-reflect -> END 或 research
+reflect -> END 或 research（由 reflect 返回的 goto 决定）
 research -> reflect
 ```
 
-终止逻辑至少覆盖：教授确认答案时结束；达到最大步数时结束；仍有 critique 且未超限时继续研究。确认步数在哪个节点更新，避免循环无法终止。
+终止逻辑至少覆盖：教授确认答案时结束；达到最大步数时结束；仍有 critique 且未超限时继续研究。步数在 `research_start` 和 `research` 中更新，`reflect` 只读取，避免循环无法终止。
 
-**检查：**用手工构造的状态分别验证“确认答案”“需要重研究”“达到步数上限”三个路由分支，然后编译图。
+**检查：**用手工构造的状态分别验证“确认答案”“需要重研究”“达到步数上限”三个路由分支，再补充“answer 和 critique 同时出现”“两者都为空”两个边界，然后编译图。
 
 **文章素材：**用流程图解释节点、边和条件边如何组成 Agent 的控制流。
 
@@ -136,3 +136,14 @@ python -m pip check
 - 不接入 DeepEval，不做批量评测或指标计算。
 - 不导出 OpenTelemetry trace。
 - MMLU 标准答案只用于人工核对，不以答对率作为验收目标。
+
+
+## 备忘
+Pydantic 模型：ReflectionResponse 是我们预先定义的类，里面严格规定了两个字段：answer 和 critique。
+
+模型生成与解析：当执行 reflection = reflection_chain.invoke(...) 时，大模型会被强制要求输出符合该 Pydantic 结构的 JSON 数据。LangChain 会自动将这段 JSON 解析成 ReflectionResponse 的 Python 实例对象。
+注意事项：
+- 如果模型输出同时包含 answer 和 critique，ReflectionResponse 不做修正，原样保留；`reflect` 节点会把它视为“未确认”，继续研究。
+- 如果模型输出两者都为空，ReflectionResponse 依然会生成实例，但 answer 和 critique 都为 None；`reflect` 同样视为“未确认”。
+- 只有给出 answer 且没有 critique，才算教授确认答案。是否结束由 `reflect` 节点判断，并通过 `Command(goto=...)` 路由，Pydantic 模型只负责描述字段。
+- 教授没有返回 answer 时，`reflect` 保留研究员的草稿，保证下一轮 research 节点能拿到旧回答和最新的 critique。
