@@ -4,8 +4,12 @@ from langchain_core.prompts import ChatPromptTemplate
 # from langchain_classic.agents import create_tool_calling_agent, AgentExecutor
 from langchain.agents import create_agent
 
-from llm import get_llm
-from tools import get_tools
+if __package__:
+    from .llm import get_llm
+    from .tools import get_tools
+else:
+    from llm import get_llm
+    from tools import get_tools
 
 # ==========================================
 # 1. Pydantic 结构化输出定义

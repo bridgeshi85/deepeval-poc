@@ -24,7 +24,8 @@ def get_llm():
         api_key=api_key,
         base_url="https://token-plan.cn-beijing.maas.aliyuncs.com/compatible-mode/v1",
         temperature=0.7,
-        max_retries=3
+        max_retries=3,
+        timeout=90
     )
     
     return llm

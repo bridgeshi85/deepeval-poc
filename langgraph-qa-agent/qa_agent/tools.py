@@ -1,5 +1,6 @@
 import os
 import time
+from concurrent.futures import ThreadPoolExecutor
 from datetime import timedelta
 
 import wikipedia
@@ -11,19 +12,29 @@ WIKIPEDIA_USER_AGENT = os.getenv(
     "WIKIPEDIA_USER_AGENT",
     "deepeval-poc-qa-agent/0.1 (https://github.com/bridgeshi85/deepeval-poc)",
 )
-RETRY_DELAYS = (3, 10)
+RETRY_DELAYS = (3,)
+TOOL_TIMEOUT = 20  # 单次工具调用的最长等待秒数
 
 
 def _make_resilient(tool):
     """外部检索偶发限流/网络错误时重试，最终转成工具错误交给模型，而不是让整个 Agent 崩溃。"""
     original_run = tool._run
 
+    def run_with_timeout(*args, **kwargs):
+        # 底层搜索库没有可靠的超时；超时后放弃等待，线程在后台自行结束
+        pool = ThreadPoolExecutor(max_workers=1)
+        try:
+            return pool.submit(original_run, *args, **kwargs).result(timeout=TOOL_TIMEOUT)
+        finally:
+            pool.shutdown(wait=False)
+
     def run_with_retry(*args, **kwargs):
         last_error = None
         for delay in (*RETRY_DELAYS, None):
             try:
-                return original_run(*args, **kwargs)
+                return run_with_timeout(*args, **kwargs)
             except Exception as e:
+                print(f"[tool:{tool.name}] 调用失败: {type(e).__name__} {e}")
                 last_error = e
                 if delay is not None:
                     time.sleep(delay)

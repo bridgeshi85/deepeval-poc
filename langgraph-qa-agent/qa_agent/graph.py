@@ -1,10 +1,12 @@
 # ==========================================
 # 1. 定义图的全局状态 (State)
 from typing import TypedDict, Optional, Literal
-from agents import (
+from .agents import (
     create_research_agent,
     create_critique_researcher,
-    create_reflection_chain
+    create_reflection_chain,
+    run_research,
+    run_critique_research,
 )
 from langgraph.graph import StateGraph, START, END
 from langgraph.types import Command
@@ -36,10 +38,7 @@ reflection_chain = create_reflection_chain()
 def research_start(state: ReflectionAgentState):
     """首次研究节点：读取题目，调用工具，输出初代草稿"""
     print(f"\n--- [Node: research_start] 开始首次研究 ---")
-    result = initial_researcher.invoke({
-        "question": state["question"],
-        "options": state["options"]
-    })
+    result = run_research(initial_researcher, state["question"], state["options"])
     print(f"[research_start] 初代草稿:\n{result}")
     # 返回增量更新：初始化步数为1，写入初始答案
     return {
@@ -51,15 +50,16 @@ def research_start(state: ReflectionAgentState):
 def research(state: ReflectionAgentState):
     """后续研究节点：基于反馈（critique）修正答案"""
     print(f"\n--- [Node: research] 收到反馈，继续研究 (当前第 {state.get('steps', 0)} 轮) ---")
-    result = critique_researcher.invoke({
-        "question": state["question"],
-        "options": state["options"],
-        "previous_answer": state["current_answer"],
-        "feedback": state["feedback"]
-    })
+    result = run_critique_research(
+        critique_researcher,
+        state["question"],
+        state["options"],
+        state["current_answer"],
+        state["feedback"],
+    )
     
     return {
-        "current_answer": result["output"],
+        "current_answer": result,
         "steps": state.get("steps", 0) + 1
     }
 
@@ -104,18 +104,3 @@ workflow.add_edge("research_start", "reflect")
 workflow.add_edge("research", "reflect")
 
 app = workflow.compile()
-
-# ==========================================
-# 5. 测试运行入口
-# ==========================================
-if __name__ == "__main__":
-    inputs = {
-        "question": "2024年诺贝尔物理学奖授予了谁？",
-        "options": "A. 杰弗里·辛顿\nB. 约翰·霍普菲尔德\nC. 都是\nD. 都不是"
-    }
-    
-    # 运行图并打印最终状态
-    final_state = app.invoke(inputs)
-    
-    print("\n\n=== 最终结果 ===")
-    print(final_state["current_answer"])
