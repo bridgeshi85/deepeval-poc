@@ -4,8 +4,10 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import timedelta
 
 import wikipedia
+from dotenv import load_dotenv
 from langchain_community.agent_toolkits.load_tools import load_tools
 from langchain_core.tools import ToolException
+from langchain_tavily import TavilySearch
 
 # Wikimedia 要求使用可识别的 User-Agent；通用 UA 更容易被限流
 WIKIPEDIA_USER_AGENT = os.getenv(
@@ -52,13 +54,16 @@ def _make_resilient(tool):
 def get_tools():
     """
     加载并返回所需的检索工具列表。
-    这里仅仅是实例化工具对象，不会触发真实的外部 API 搜索。
+    这里仅仅是实例化工具对象，不会触发真实的外部 API 搜索，但需要 Tavily Key。
     """
+    load_dotenv()
+    if not os.getenv("TAVILY_API_KEY"):
+        raise ValueError("环境变量缺失: 请在 .env 文件中配置 TAVILY_API_KEY")
+
     wikipedia.wikipedia.USER_AGENT = WIKIPEDIA_USER_AGENT
     wikipedia.set_rate_limiting(True, min_wait=timedelta(seconds=1))
 
-    # LangChain 内置了对这些常见搜索工具的封装
-    tools = load_tools(["ddg-search", "arxiv", "wikipedia"])
+    tools = [TavilySearch(max_results=5), *load_tools(["arxiv", "wikipedia"])]
     return [_make_resilient(tool) for tool in tools]
 
 if __name__ == "__main__":

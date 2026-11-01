@@ -58,9 +58,9 @@ class RunTests(unittest.IsolatedAsyncioTestCase):
             stream_mode=["updates"],
         )
         self.assertIn("MMLU 标准答案：\nC. East", output.getvalue())
-        self.assertIn("仅供人工核对", output.getvalue())
-        self.assertIn("[更新: research_start]", output.getvalue())
-        self.assertIn("[更新: reflect]", output.getvalue())
+        self.assertIn("第 1 轮研究完成", output.getvalue())
+        self.assertNotIn("[更新:", output.getvalue())
+        self.assertNotIn("Demo 不承诺答题准确率", output.getvalue())
         return output.getvalue(), researcher, reviser, reflector
 
     async def test_approved_answer_ends_after_first_research(self):
@@ -68,6 +68,8 @@ class RunTests(unittest.IsolatedAsyncioTestCase):
             [agents.ReflectionResponse(answer="C. Confirmed")]
         )
         self.assertIn("Agent 答案：\nC. Confirmed", output)
+        self.assertIn("教授审查完成", output)
+        self.assertNotIn("第 2 轮研究完成", output)
         researcher.invoke.assert_called_once_with(
             {
                 "messages": [
@@ -92,6 +94,8 @@ class RunTests(unittest.IsolatedAsyncioTestCase):
             ]
         )
         self.assertIn("Agent 答案：\nC. Confirmed", output)
+        self.assertIn("教授反馈：Check the map", output)
+        self.assertIn("第 2 轮研究完成", output)
         reviser.invoke.assert_called_once()
         prompt = reviser.invoke.call_args.args[0]["messages"][0]["content"]
         self.assertIn("A. Draft", prompt)
@@ -103,6 +107,7 @@ class RunTests(unittest.IsolatedAsyncioTestCase):
             [agents.ReflectionResponse(critique="More evidence")] * 3
         )
         self.assertIn("Agent 答案：\nC. Revised", output)
+        self.assertIn("第 3 轮研究完成", output)
         self.assertEqual(reviser.invoke.call_count, 2)
         self.assertEqual(reflector.invoke.call_count, 3)
 
@@ -128,7 +133,7 @@ class TraceTests(unittest.TestCase):
         output = io.StringIO()
         with redirect_stdout(output):
             log_event(
-                "research",
+                "reflect",
                 {
                     "feedback": "Check the map",
                     "messages": [
@@ -147,6 +152,7 @@ class TraceTests(unittest.TestCase):
             )
         self.assertIn("Check the map", output.getvalue())
         self.assertIn("工具调用: search 参数: {'query': 'geography'}", output.getvalue())
+        self.assertNotIn("messages:", output.getvalue())
 
 
 if __name__ == "__main__":

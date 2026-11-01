@@ -34,10 +34,9 @@ async def run() -> None:
     if not agent_answer:
         raise RuntimeError("图运行结束，但未产生 Agent 答案。")
 
-    print("\n=== 最终结果（仅供人工核对） ===")
+    print("\n=== 最终结果 ===")
     print(f"Agent 答案：\n{agent_answer}")
     print(f"\nMMLU 标准答案：\n{reference_answer}")
-    print("\nDemo 不承诺答题准确率；标准答案仅供人工核对，不作为自动评测指标。")
 
 
 if __name__ == "__main__":

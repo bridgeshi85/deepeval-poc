@@ -12,9 +12,9 @@ cd langgraph-qa-agent
 python -m pip install -r requirements.txt
 ```
 
-在仓库根目录 `.env` 中配置 `DASHSCOPE_API_KEY` 和 `DASHSCOPE_MODEL_NAME`。不要把密钥写入代码或提交到仓库。
+在项目目录 `.env` 中配置 `DASHSCOPE_API_KEY`、`DASHSCOPE_MODEL_NAME` 和 `TAVILY_API_KEY`。不要把密钥写入代码或提交到仓库。
 
-> DuckDuckGo 工具在当前 `langchain-community` 版本中依赖 `ddgs`，而不是旧包 `duckduckgo-search`；依赖已记录在 `requirements.txt`。
+> 网页搜索使用 `langchain-tavily` 的 `TavilySearch`，需要 Tavily API Key；`arxiv` 和 `wikipedia` 仍由 `langchain-community` 加载。
 
 ## 1. 封装 Qwen 模型
 
@@ -35,9 +35,9 @@ python -m pip install -r requirements.txt
 
 **文件：** `qa_agent/tools.py`
 
-通过 `langchain_community.agent_toolkits.load_tools` 加载 `ddg-search`、`arxiv` 和 `wikipedia`，并封装成一个工具加载函数。
+通过 `langchain_tavily.TavilySearch` 加载网页搜索，通过 `langchain_community.agent_toolkits.load_tools` 加载 `arxiv` 和 `wikipedia`，并封装成一个工具加载函数。
 
-**检查：**打印加载出的工具名称，预期包含 DuckDuckGo、Arxiv 和 Wikipedia。只检查工具构建时不需要发起联网搜索。
+**检查：**打印加载出的工具名称，预期包含 Tavily、Arxiv 和 Wikipedia。只检查工具构建时不需要发起联网搜索，但需要配置 Tavily API Key。
 
 **文章素材：**说明工具提供外部检索能力，但检索结果仍需要模型筛选和解释。
 

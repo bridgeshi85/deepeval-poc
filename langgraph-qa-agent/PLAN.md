@@ -17,7 +17,7 @@
   原书用 `ChatGoogleGenerativeAI`。
 - 本项目自带 `langgraph-qa-agent/requirements.txt`、各自 `.venv`。需要的包：
   `langgraph`、`langchain` / `langchain-core` / `langchain-openai` / `langchain-community`、
-  `pydantic`、检索工具包（`duckduckgo-search`、`arxiv`、`wikipedia`）、`datasets`、
+  `pydantic`、检索工具包（`langchain-tavily`、`arxiv`、`wikipedia`）、`datasets`、
   `python-dotenv`。版本在开发第 2 步锁定。
 - 代码放本目录下的包 `qa_agent/`。
 
@@ -32,7 +32,7 @@
 2. **功能清单（要在文章里逐条对上 LangGraph 概念）**：
    - F1 数据加载：从 MMLU（`cais/mmlu`, `high_school_geography`）取样，暴露
      `question` / `options` / 标准答案，用于人工核对（入门篇不做自动评测）。
-   - F2 Research Agent：`create_react_agent`，挂 3 个检索工具（DuckDuckGo / Arxiv /
+   - F2 Research Agent：`create_react_agent`，挂 3 个检索工具（Tavily / Arxiv /
      Wikipedia），system prompt 设定"逐步思考、必须给论证、不许臆测、用工具找证据"。
    - F3 Research-with-critique Agent：同上，但 prompt 额外吃 `answer` + `feedback`，
      做二次改进。
@@ -69,7 +69,7 @@
      qa_agent/
        __init__.py
        llm.py           # Qwen ChatOpenAI 封装
-       tools.py         # load_tools 三件套
+        tools.py         # TavilySearch + load_tools
        agents.py        # research_agent / research_agent_with_critique / reflection_chain
        graph.py         # State 定义 + StateGraph 组装 + _should_end
        trace.py         # F6：统一的节点/工具日志打印
@@ -81,7 +81,7 @@
    | notebook 位置 | 原实现 | 改造 |
    |---|---|---|
    | cell 8 | `ChatGoogleGenerativeAI("gemini-2.5-flash")` | `qa_agent/llm.py` 用 DashScope `ChatOpenAI`，`temperature=1.0` 保留 |
-   | cell 9 | `load_tools(["ddg-search","arxiv","wikipedia"], llm)` | 不变，但确认当前 langchain 里 `load_tools` 的 import 路径（`langchain_community.agent_toolkits.load_tools` 或 `langchain.agents.load_tools`） |
+    | cell 9 | `load_tools(["ddg-search","arxiv","wikipedia"], llm)` | 网页搜索改为 `TavilySearch`，其余工具仍用 `langchain_community.agent_toolkits.load_tools` |
    | cell 10/12 | `create_react_agent` from `langgraph.prebuilt` | 不变，需装 `langgraph` |
    | cell 13-15 | `Response` / `ReflectionAgentState` / 三个节点函数 | 不变 |
    | cell 16 | `draw_mermaid_png()` | 改成保存 png 到文件，或直接在 README 里贴静态 mermaid（去掉对 graphviz/浏览器的依赖） |
@@ -93,7 +93,7 @@
    分隔线，读者能直接抄。
 
 4. **配置**：复用仓库根 `.env` 的 `DASHSCOPE_API_KEY` / `DASHSCOPE_MODEL_NAME`（如
-   `qwen-plus`）；`llm.py` 用 `python-dotenv` 加载。检索工具走公网，无需 key。
+    `qwen-plus`）；`llm.py` 用 `python-dotenv` 加载。网页搜索另需 `TAVILY_API_KEY`。
 
 ---
 
@@ -104,7 +104,7 @@
    `create_react_agent` / `load_tools` 的可用 import 路径（跑一个 import 冒烟测试）。
 3. `llm.py`：参考 `../deepeval-local-llm-poc/custom_llm.py` 的 DashScope `ChatOpenAI`
    构造逻辑，暴露 `get_llm()`；单测一次 `.invoke("ping")`。
-4. `tools.py`：`load_tools` 三件套；单测 `ddg-search` 能返回结果。
+ 4. `tools.py`：`TavilySearch` + `load_tools`；配置 `TAVILY_API_KEY` 后验证工具加载及搜索。
 5. `agents.py`：搬 cell 9-15 的 prompt / `Response` / 两个 react agent /
    `reflection_chain`。单独跑 `research_agent.invoke({...})` 验证工具调用链。
 6. `graph.py`：搬 `ReflectionAgentState`、三个节点函数、`_should_end`、

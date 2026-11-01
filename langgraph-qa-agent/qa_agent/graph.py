@@ -37,9 +37,7 @@ reflection_chain = create_reflection_chain()
 # ==========================================
 def research_start(state: ReflectionAgentState):
     """首次研究节点：读取题目，调用工具，输出初代草稿"""
-    print(f"\n--- [Node: research_start] 开始首次研究 ---")
     result = run_research(initial_researcher, state["question"], state["options"])
-    print(f"[research_start] 初代草稿:\n{result}")
     # 返回增量更新：初始化步数为1，写入初始答案
     return {
         "current_answer": result,
@@ -49,7 +47,6 @@ def research_start(state: ReflectionAgentState):
 
 def research(state: ReflectionAgentState):
     """后续研究节点：基于反馈（critique）修正答案"""
-    print(f"\n--- [Node: research] 收到反馈，继续研究 (当前第 {state.get('steps', 0)} 轮) ---")
     result = run_critique_research(
         critique_researcher,
         state["question"],
@@ -66,7 +63,6 @@ def research(state: ReflectionAgentState):
 
 def reflect(state: ReflectionAgentState) -> Command[Literal["research", "__end__"]]:
     """反思审查节点：教授角色校验当前答案，并决定结束还是继续研究"""
-    print(f"\n--- [Node: reflect] 教授审查中 ---")
     reflection = reflection_chain.invoke({
         "question": state["question"],
         "options": state["options"],
@@ -77,7 +73,6 @@ def reflect(state: ReflectionAgentState) -> Command[Literal["research", "__end__
 
     # 两者都有或都没有，都视为教授没有确认，继续研究。
     approved = bool(answer) and not critique
-    print(f"[reflect] 教授审查结果: answer={answer}, critique={critique}, approved={approved}")
     # 如果教授approve或者已经超过最大尝试步数，goto END；否则继续研究
     goto = END if approved or state.get("steps", 0) >= MAX_STEPS else "research"
 
