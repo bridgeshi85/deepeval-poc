@@ -3,6 +3,7 @@ from pydantic import BaseModel, Field
 from langchain_core.prompts import ChatPromptTemplate
 # from langchain_classic.agents import create_tool_calling_agent, AgentExecutor
 from langchain.agents import create_agent
+from langchain.agents.middleware import ModelCallLimitMiddleware, ToolCallLimitMiddleware
 
 if __package__:
     from .llm import get_llm
@@ -35,7 +36,13 @@ def create_research_agent():
         system_prompt=(
             "你是一个研究员。请使用你的工具搜索信息，"
             "解答用户的选择题，并给出你的论证过程。"
+            "每轮最多调用3次工具，最多4次模型调用；请尽早停止检索并明确给出选项和简短理由。"
+            "工具不可用时不要反复重试，使用已有证据作答并说明不确定性。"
         ),
+        middleware=[
+            ToolCallLimitMiddleware(run_limit=3, exit_behavior="continue"),
+            ModelCallLimitMiddleware(run_limit=4, exit_behavior="error"),
+        ],
     )
 
 def create_critique_researcher():
@@ -46,7 +53,14 @@ def create_critique_researcher():
         system_prompt=(
             "你是一个严谨的研究员。你之前对一道题目给出了初步解答，但教授给出了批评意见。"
             "请根据教授的指示，调用工具做进一步调查，修正并完善你的答案。"
+            "每轮最多调用3次工具，最多4次模型调用；请尽早停止检索并明确给出选项和简短理由。"
+            "优先解决影响选项判断的问题，不要反复查找题库答案或追溯原题出处。"
+            "工具不可用时使用已有证据作答并说明不确定性。"
         ),
+        middleware=[
+            ToolCallLimitMiddleware(run_limit=3, exit_behavior="continue"),
+            ModelCallLimitMiddleware(run_limit=4, exit_behavior="error"),
+        ],
     )
 
 
@@ -87,7 +101,7 @@ def create_reflection_chain():
     structured_llm = llm.with_structured_output(ReflectionResponse)
     
     prompt = ChatPromptTemplate.from_messages([
-        ("system", "你是一位严格的教授。请检查研究员对题目的解答过程是否严谨、信息是否充分。如果完美，请提取最终答案放入 answer 字段；如果有瑕疵或信息不足，请在 critique 字段给出具体的下一步搜索建议。"),
+        ("system", "你是一位严谨的教授。请检查研究员选择的答案是否有充分依据，论证是否存在影响选项判断的实质错误。若依据足够且没有实质错误，请将选项及简短理由放入 answer，critique 留空；否则 answer 留空，在 critique 中只给出一个最关键的改进方向。不要以措辞不完美、缺少原题出处或缺少官方答案键为由要求继续搜索。"),
         ("user", "题目：\n{question}\n\n选项：\n{options}\n\n研究员的论证：\n{research_result}")
     ])
     

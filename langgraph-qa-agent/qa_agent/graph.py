@@ -37,6 +37,7 @@ reflection_chain = create_reflection_chain()
 # ==========================================
 def research_start(state: ReflectionAgentState):
     """首次研究节点：读取题目，调用工具，输出初代草稿"""
+    print("\n第 1 轮研究开始", flush=True)
     result = run_research(initial_researcher, state["question"], state["options"])
     # 返回增量更新：初始化步数为1，写入初始答案
     return {
@@ -47,6 +48,7 @@ def research_start(state: ReflectionAgentState):
 
 def research(state: ReflectionAgentState):
     """后续研究节点：基于反馈（critique）修正答案"""
+    print(f"\n第 {state.get('steps', 0) + 1} 轮研究开始", flush=True)
     result = run_critique_research(
         critique_researcher,
         state["question"],
@@ -63,6 +65,7 @@ def research(state: ReflectionAgentState):
 
 def reflect(state: ReflectionAgentState) -> Command[Literal["research", "__end__"]]:
     """反思审查节点：教授角色校验当前答案，并决定结束还是继续研究"""
+    print("教授开始审查", flush=True)
     reflection = reflection_chain.invoke({
         "question": state["question"],
         "options": state["options"],
@@ -98,4 +101,4 @@ workflow.add_edge(START, "research_start")
 workflow.add_edge("research_start", "reflect")
 workflow.add_edge("research", "reflect")
 
-app = workflow.compile()
+app = workflow.compile(name="QA-Reflection-Agent")
