@@ -106,35 +106,3 @@ def create_reflection_chain():
     ])
     
     return prompt | structured_llm
-
-# ==========================================
-# 3. 单独测试验证 (供本地检查)
-# ==========================================
-if __name__ == "__main__":
-    question = "2024年诺贝尔物理学奖授予了谁？"
-    options = "A. 杰弗里·辛顿\nB. 约翰·霍普菲尔德\nC. 都是\nD. 都不是"
-    
-    print("\n--- [测试 1] 初始 Research Agent ---")
-    researcher = create_research_agent()
-    draft_answer = run_research(researcher, question, options)
-    print(f"\n[研究员初步结论]:\n{draft_answer}")
-
-    print("\n--- [测试 2] Reflection Chain ---")
-    reflection_chain = create_reflection_chain()
-    reflection = reflection_chain.invoke({
-        "question": question,
-        "options": options,
-        "research_result": draft_answer
-    })
-    
-    print(f"\n[教授审批结果 (结构化)]:")
-    print(f"最终答案 (Answer): {reflection.answer}")
-    print(f"修改意见 (Critique): {reflection.critique}")
-
-    print("\n--- [测试 3] Research-with-critique Agent ---")
-    # 教授已确认答案时没有 critique，这里用固定反馈单独验证该组件
-    feedback = reflection.critique or "请核对权威来源，并逐项说明每个选项正确或错误的理由。"
-    revised_answer = run_critique_research(
-        create_critique_researcher(), question, options, draft_answer, feedback
-    )
-    print(f"\n[研究员修正后的结论]:\n{revised_answer}")
