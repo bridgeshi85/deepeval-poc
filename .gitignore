@@ -3,6 +3,8 @@
 *.env.local
 
 # Python
+.venv/
+venv/
 __pycache__/
 *.py[cod]
 *$py.class
@@ -13,6 +15,11 @@ build/
 # Vector Store
 chroma_db/
 *.db
+
+# DeepEval runtime artifacts
+.deepeval/
+.deepeval-cache.json
+.pytest_cache/
 
 # IDE
 .idea/

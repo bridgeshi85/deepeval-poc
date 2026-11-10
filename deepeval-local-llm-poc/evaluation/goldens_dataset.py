@@ -1,5 +1,10 @@
 import csv
+import sys
 from pathlib import Path
+
+# 确保能 import 到项目根的 custom_llm（不依赖运行时 cwd）
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
 from deepeval.synthesizer import Synthesizer
 from deepeval.dataset import EvaluationDataset
 from deepeval.synthesizer.config import ContextConstructionConfig
